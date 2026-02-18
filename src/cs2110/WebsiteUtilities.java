@@ -25,7 +25,6 @@ public class WebsiteUtilities {
 
     // TODO 1a: Add specifications for this method, which should include an interpretation
     //  of each of the parameters, and documentation of all pre-conditions and post-conditions.
-
     /**
      * If the array is
      */
@@ -34,16 +33,16 @@ public class WebsiteUtilities {
         // TODO 1b: Complete the implementation of this method so that it agrees with your specifications.
         //  Your implementation must be recursive and include no loops. Use the `BY_TIMESTAMP.compare()`
         //  method for any comparisons of `VisitRecord`s.
-        if (l - r < 2) {
+        if (l - r == 1) {
             return l;
         }
         else {
             int m = (l + r) / 2;
-            if (BY_TIMESTAMP.compare(v, visits[m]) < 0) {
-                return lowerBoundTimestampRecursive(visits, v, l, m);
+            if (BY_TIMESTAMP.compare(v, visits[m]) <= 0) {
+                return lowerBoundTimestampRecursive(visits, v, m, r);
             }
             else {
-                return lowerBoundTimestampRecursive(visits, v, m, r);
+                return lowerBoundTimestampRecursive(visits, v, l, m);
             }
 
         }
@@ -79,25 +78,35 @@ public class WebsiteUtilities {
         }
     }
 
-        /**
-         * Returns a reference to *new* array comprising the sorted (and possibly deduplicated) entries
-         * of the given `visits` array. No modifications are made to the `visits` array as a result of
-         * this method. The entries of the new array are sorted in the ascending order of the given
-         * Comparator `cmp`.
-         * <p> - If `policy == KEEP_ALL` then all entries of `visits` are present in the returned array,
-         * and the order of equivalent elements is preserved.
-         * <p> - If `policy == KEEP_FIRST`, then among all sets of equivalent entries of `visits` under
-         * `cmp`, only the entry with the smallest index in `visits` is present in the returned array.
-         * <p> - If `policy == KEEP_LAST`, then among all sets of equivalent entries of `visits` under
-         * `cmp`, only the entry with the largest index in `visits` is present in the returned array.
-         * <p> The length of the returned array will be chosen to exactly store its contents with no
-         * trailing empty entries.
-         */
+    /**
+     * Returns a reference to *new* array comprising the sorted (and possibly deduplicated) entries
+     * of the given `visits` array. No modifications are made to the `visits` array as a result of
+     * this method. The entries of the new array are sorted in the ascending order of the given
+     * Comparator `cmp`.
+     * <p> - If `policy == KEEP_ALL` then all entries of `visits` are present in the returned array,
+     * and the order of equivalent elements is preserved.
+     * <p> - If `policy == KEEP_FIRST`, then among all sets of equivalent entries of `visits` under
+     * `cmp`, only the entry with the smallest index in `visits` is present in the returned array.
+     * <p> - If `policy == KEEP_LAST`, then among all sets of equivalent entries of `visits` under
+     * `cmp`, only the entry with the largest index in `visits` is present in the returned array.
+     * <p> The length of the returned array will be chosen to exactly store its contents with no
+     * trailing empty entries.
+     */
     static VisitRecord[] deduplicatingSort(VisitRecord[] visits, Comparator<VisitRecord> cmp,
             DeduplicationPolicy policy) {
-        // TODO 5a: Call dedupMergeSortRecursive(), passing in a copy of the `visits` array. Use its
-        //  return value to obtain the return value for this method.
-        throw new UnsupportedOperationException();
+
+        // Initializing work array and copying initial visits array
+        VisitRecord[] work = new VisitRecord[visits.length / 2 + 1];
+        VisitRecord[] visitsCopy = new VisitRecord[visits.length];
+        System.arraycopy(visits, 0, visitsCopy, 0, visits.length);
+
+        int mergedTail = dedupMergeSortRecursive(visitsCopy, work, 0, visitsCopy.length, cmp, policy);
+
+        // Removing trailing zeros at end of array
+        VisitRecord[] visitsFinal = new VisitRecord[mergedTail];
+        System.arraycopy(visitsCopy, 0, visitsFinal, 0, mergedTail);
+
+        return visitsFinal;
     }
 
     /**
@@ -109,8 +118,16 @@ public class WebsiteUtilities {
      */
      static int dedupMergeSortRecursive(VisitRecord[] visits, VisitRecord[] work, int begin, int end,
             Comparator<VisitRecord> cmp, DeduplicationPolicy policy) {
-        // TODO 5b: Implement recursive merge sort.
-        throw new UnsupportedOperationException();
+         if (end - begin == 1) {
+             return end;
+         }
+         else {
+             int midpoint = (begin + end) / 2;
+             int leftTail = dedupMergeSortRecursive(visits, work, begin, midpoint, cmp, policy);
+             int rightTail = dedupMergeSortRecursive(visits, work, midpoint, end, cmp, policy);
+
+             return merge(visits, work, begin, leftTail, midpoint, rightTail, cmp, policy);
+         }
     }
 
     /**
@@ -131,79 +148,71 @@ public class WebsiteUtilities {
         int j = rightBegin;
         int k = leftBegin;
 
-        // Copy [leftBegin, leftEnd) to work array
-        for (int z = 0; z < (leftEnd - leftBegin); z++) {
-            work[z] = visits[leftBegin + z];
+        if (leftEnd - leftBegin >= 0) {
+            System.arraycopy(visits, leftBegin, work, 0, leftEnd - leftBegin);
         }
 
-        while (i < (leftEnd - leftBegin) || j < rightEnd) {
+        // Sorting array until one array is completely sorted
+        while (i < (leftEnd - leftBegin) && j < rightEnd) {
             int cmpValue = cmp.compare(work[i], visits[j]);
+            VisitRecord putVisitRecord = null;
 
-            // First timestamp comes first
+            // Getting visitRecord that should go first
             if (cmpValue < 0) {
-                // Checks if last and current timestamps are the same
-                if (k != leftBegin) {
-                    if (cmp.compare(visits[k-1], work[i]) == 0) {
-                        if (policy == KEEP_LAST) {
-                            visits[k-1] = work[i];
-                            i++;
-                        }
-                        else if (policy == KEEP_ALL) {
-                            visits[k] = work[i];
-                            i++; k++;
-                        }
-                    }
-                    else {
-                        visits[k] = work[i];
-                        i++; k++;
-                    }
-                }
-
-                // Timestamps are different
-                else {
-                    visits[k] = work[i];
-                    i++; k++;
-                }
+                putVisitRecord = work[i];
+                i++;
             }
-
-            // Second timestamp comes first
             else if (cmpValue > 0) {
-                if (k != leftBegin) {
-                    // Checks if current and last timestamps are the same
-                    if (cmp.compare(visits[k-1], visits[j]) == 0) {
-                        if (policy == KEEP_LAST) {
-                            visits[k-1] = visits[j];
-                            j++;
-                        }
-                        else if (policy == KEEP_ALL) {
-                            visits[k] = visits[j];
-                            j++; k++;
-                        }
-                    }
-
-                    else {
-                        visits[k] = visits[j];
-                        j++; k++;
-                    }
-                }
-
-                else {
-                    visits[k] = visits[j];
-                    j++; k++;
-                }
+                putVisitRecord = visits[j];
+                j++;
             }
-
-            // Timestamps are the same
             else {
-                if (policy == KEEP_LAST) {
-                    visits[k] = visits[j];
-                    j++; k++;
+                if (policy == KEEP_ALL) {
+                    putVisitRecord = work[i];
+                    i++;
                 }
-                else {
-                    visits[k] = work[i];
-                    i++; k++;
+                else if (policy == KEEP_LAST) {
+                    putVisitRecord = visits[j];
+                    j++;
+                }
+                else if (policy == KEEP_FIRST) {
+                    putVisitRecord = work[i];
+                    i++;
                 }
             }
+
+            // Putting the value onto the right spot
+            if (k != leftBegin) {
+                // Checking if prev value is same as current value
+                if (cmp.compare(visits[k-1], putVisitRecord) == 0) {
+                    if (policy == KEEP_LAST) {
+                        visits[k-1] = putVisitRecord;
+                    }
+                    else if (policy == KEEP_ALL) {
+                        visits[k] = putVisitRecord;
+                        k++;
+                    }
+                }
+                // Prev value is diff than current value, proceed normally
+                else {
+                    visits[k] = putVisitRecord;
+                    k++;
+                }
+            }
+            else {
+                visits[k] = putVisitRecord;
+                k++;
+            }
+        }
+
+        while (i < (leftEnd - leftBegin)) {
+            visits[k] = work[i];
+            i++; k++;
+        }
+
+        while (j < rightEnd) {
+            visits[k] = visits[j];
+            i++; j++;
         }
 
         return k;
