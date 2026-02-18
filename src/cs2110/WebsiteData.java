@@ -76,7 +76,17 @@ public class WebsiteData {
     int countDistinctUsers() {
         // TODO 6a: Complete this method according to its specifications. Your definition may
         //  not include any loops.
-        throw new UnsupportedOperationException();
+
+        VisitRecord[] byUser = deduplicatingSort(visits, BY_USER_ID, KEEP_ALL);
+        int count = 0;
+        String lastUser = null;
+        for (VisitRecord visit : byUser) {
+            if (!visit.userID.equals(lastUser)) {
+                count++;
+                lastUser = visit.userID;
+            }
+        }
+        return count;
     }
 
     /**
@@ -86,7 +96,22 @@ public class WebsiteData {
     int countDistinctUsersInTimeInterval(LocalDateTime start, LocalDateTime end) {
         // TODO 6b: Complete this method according to its specifications. Your definition may
         //  not include any loops. (Hint: use `dedupMergeSortRecursive()`)
-        throw new UnsupportedOperationException();
+
+        // 1. Get all visits in the time interval
+        VisitRecord[] byTime = deduplicatingSort(visits, BY_TIMESTAMP, KEEP_ALL);
+        int first = lowerBoundTimestamp(byTime, start);
+        int last = upperBoundTimestamp(byTime, end);
+        // 2. Count distinct users in that interval
+        VisitRecord[] byUser = deduplicatingSort(byTime, BY_USER_ID, KEEP_FIRST);
+        int count = 0;
+        String lastUser = null;
+        for (int i = first; i < last; i++) {
+            if (!byUser[i].userID.equals(lastUser)) {
+                count++;
+                lastUser = byUser[i].userID;
+            }
+        }
+        return count;
     }
 
     /**
@@ -99,9 +124,12 @@ public class WebsiteData {
     String[] lastKUsers(int k) {
         // TODO 6c: Complete this method according to its specifications. Your definition may
         //  include at most one loop that runs for at most `k` iterations.
-        throw new UnsupportedOperationException();
+
+        VisitRecord[] byTime = deduplicatingSort(visits, BY_TIMESTAMP, KEEP_LAST);
+        String[] result = new String[k];
+        for (int i = 0; i < k; i++) {
+            result[i] = byTime[byTime.length - 1 - i].userID;
+        }
+        return result;
     }
-
-
-
 }
