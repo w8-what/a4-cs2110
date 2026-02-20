@@ -23,28 +23,33 @@ public class WebsiteUtilities {
         return lowerBoundTimestampRecursive(visits, new VisitRecord("", t), 0, visits.length);
     }
 
-    // TODO 1a: Add specifications for this method, which should include an interpretation
-    //  of each of the parameters, and documentation of all pre-conditions and post-conditions.
     /**
-     * If the array is
+     * Returns the index `i` with `0 <= i <= visits.length` such that `visits[l, i)` all occurred
+     * strictly before timestamp `v.timstamp` and `visits[i, r)` all occurred at or after timestamp
+     * `v.timestamp`. No modifications are made to the array `visits` as a result of this method.
+     *  Requires that `visits` is sorted using `WebsiteData.BY_TIMESTAMP` and that l < r.
      */
     @SuppressWarnings("SameParameterValue")
     static int lowerBoundTimestampRecursive(VisitRecord[] visits, VisitRecord v, int l, int r) {
-        // TODO 1b: Complete the implementation of this method so that it agrees with your specifications.
-        //  Your implementation must be recursive and include no loops. Use the `BY_TIMESTAMP.compare()`
-        //  method for any comparisons of `VisitRecord`s.
-        if (l - r == 1) {
+        if (r - l == 0) {
             return l;
         }
+
+        if (r - l == 1) {
+            if (BY_TIMESTAMP.compare(visits[l], v) < 0)
+                return l + 1;
+            else
+                return l;
+        }
+
         else {
             int m = (l + r) / 2;
-            if (BY_TIMESTAMP.compare(v, visits[m]) <= 0) {
+            if (BY_TIMESTAMP.compare(v, visits[m]) >= 0) {
                 return lowerBoundTimestampRecursive(visits, v, m, r);
             }
             else {
                 return lowerBoundTimestampRecursive(visits, v, l, m);
             }
-
         }
     }
 
@@ -55,26 +60,35 @@ public class WebsiteUtilities {
      * `visits` is sorted using `WebsiteData.BY_TIMESTAMP`.
      */
     static int upperBoundTimestamp(VisitRecord[] visits, LocalDateTime t) {
-        // TODO 2: Implement this method according to its specifications. You'll likely want to call
-        //  a recursive helper method, similar to `lowerBoundTimestamp()`. Your implementation
-        // (including any helper methods) must include no loops; they must achieve conditional
-        // repetition using recursion. Include complete specifications for any helper methods.
         return upperBoundTimestampRecursive(visits, new VisitRecord("", t), 0, visits.length);
     }
 
+    /**
+     * Returns the index `i` with `0 <= i <= visits.length` such that `visits[l, i)` all occurred
+     * strictly at or before timestamp `v.timstamp` and `visits[i, r)` all occurred after timestamp
+     * `v.timestamp`. No modifications are made to the array `visits` as a result of this method.
+     *  Requires that `visits` is sorted using `WebsiteData.BY_TIMESTAMP` and that l < r.
+     */
     static int upperBoundTimestampRecursive(VisitRecord[] visits, VisitRecord v, int l, int r) {
-        if (l - r < 2) {
+        if (r - l == 0) {
             return l;
         }
+
+        if (r - l == 1) {
+            if (BY_TIMESTAMP.compare(visits[l], v) <= 0)
+                return l + 1;
+            else
+                return l;
+        }
+
         else {
             int m = (l + r) / 2;
-            if (BY_TIMESTAMP.compare(v, visits[m]) > 0) {
-                return lowerBoundTimestampRecursive(visits, v, m, r);
+            if (BY_TIMESTAMP.compare(v, visits[m]) >= 0) {
+                return upperBoundTimestampRecursive(visits, v, m+1, r);
             }
             else {
-                return lowerBoundTimestampRecursive(visits, v, l, m);
+                return upperBoundTimestampRecursive(visits, v, l, m+1);
             }
-
         }
     }
 
@@ -118,7 +132,7 @@ public class WebsiteUtilities {
      */
      static int dedupMergeSortRecursive(VisitRecord[] visits, VisitRecord[] work, int begin, int end,
             Comparator<VisitRecord> cmp, DeduplicationPolicy policy) {
-         if (end - begin == 1) {
+         if (end - begin <= 1) {
              return end;
          }
          else {
@@ -212,7 +226,7 @@ public class WebsiteUtilities {
 
         while (j < rightEnd) {
             visits[k] = visits[j];
-            i++; j++;
+            j++; k++;
         }
 
         return k;
