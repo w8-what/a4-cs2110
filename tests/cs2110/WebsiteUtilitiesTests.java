@@ -96,4 +96,35 @@ public class WebsiteUtilitiesTests {
         assertEquals("b", sorted[0].userID());
         assertEquals("a", sorted[1].userID());
     }
+
+
+
+    VisitRecord[] visitsOne = new VisitRecord[] {
+        new VisitRecord("a", LocalDateTime.of(2026, 1, 2, 0, 0)),
+        new VisitRecord("b", LocalDateTime.of(2026, 1, 1, 0, 0)),
+        new VisitRecord("d", LocalDateTime.of(2026, 1, 5, 0, 0)),
+        new VisitRecord("e", LocalDateTime.of(2026, 1, 2, 0, 0)),
+        new VisitRecord("f", LocalDateTime.of(2026, 1, 1, 0, 0)),
+        new VisitRecord("g", LocalDateTime.of(2026, 1, 1, 0, 0)),
+        new VisitRecord("h", LocalDateTime.of(2026, 1, 2, 0, 0)),
+        new VisitRecord("i", LocalDateTime.of(2026, 1, 1, 0, 0)),
+        new VisitRecord("j", LocalDateTime.of(2026, 1, 1, 0, 0)),
+    };
+
+
+    @DisplayName("Testing lowerBoundTimeStamp() edge cases")
+    @Test
+    void testLowerBoundEdge1() {
+        VisitRecord[] visits = new VisitRecord[]{
+                new VisitRecord("a", LocalDateTime.of(2026,1,2,0,0)),
+                new VisitRecord("b", LocalDateTime.of(2026,1,1,0,0)),
+                new VisitRecord("c", LocalDateTime.of(2026,1,1,0,0)),
+        };
+        VisitRecord[] sorted = deduplicatingSort(visits, BY_TIMESTAMP, KEEP_FIRST);
+        assertEquals(2, sorted.length);
+        assertEquals("b", sorted[0].userID());
+        assertEquals("a", sorted[1].userID());
+    }
+
+
 }
