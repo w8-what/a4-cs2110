@@ -34,23 +34,11 @@ public class WebsiteUtilities {
         if (r - l == 0) {
             return l;
         }
-
-        if (r - l == 1) {
-            if (BY_TIMESTAMP.compare(visits[l], v) < 0)
-                return l + 1;
-            else
-                return l;
+        int m = (l + r) / 2;
+        if (BY_TIMESTAMP.compare(visits[m], v) < 0) {
+            return lowerBoundTimestampRecursive(visits, v, m + 1, r);
         }
-
-        else {
-            int m = (l + r) / 2;
-            if (BY_TIMESTAMP.compare(v, visits[m]) >= 0) {
-                return lowerBoundTimestampRecursive(visits, v, m, r);
-            }
-            else {
-                return lowerBoundTimestampRecursive(visits, v, l, m);
-            }
-        }
+        return lowerBoundTimestampRecursive(visits, v, l, m);
     }
 
     /**
@@ -73,23 +61,11 @@ public class WebsiteUtilities {
         if (r - l == 0) {
             return l;
         }
-
-        if (r - l == 1) {
-            if (BY_TIMESTAMP.compare(visits[l], v) <= 0)
-                return l + 1;
-            else
-                return l;
+        int m = (l + r) / 2;
+        if (BY_TIMESTAMP.compare(visits[m], v) <= 0) {
+            return upperBoundTimestampRecursive(visits, v, m + 1, r);
         }
-
-        else {
-            int m = (l + r) / 2;
-            if (BY_TIMESTAMP.compare(v, visits[m]) >= 0) {
-                return upperBoundTimestampRecursive(visits, v, m+1, r);
-            }
-            else {
-                return upperBoundTimestampRecursive(visits, v, l, m+1);
-            }
-        }
+        return upperBoundTimestampRecursive(visits, v, l, m);
     }
 
     /**
@@ -161,72 +137,52 @@ public class WebsiteUtilities {
         int i = 0;
         int j = rightBegin;
         int k = leftBegin;
+        int leftLength = leftEnd - leftBegin;
 
-        if (leftEnd - leftBegin >= 0) {
-            System.arraycopy(visits, leftBegin, work, 0, leftEnd - leftBegin);
+        if (leftLength > 0) {
+            System.arraycopy(visits, leftBegin, work, 0, leftLength);
         }
 
-        // Sorting array until one array is completely sorted
-        while (i < (leftEnd - leftBegin) && j < rightEnd) {
+        // Merge until one side is exhausted. For KEEP_FIRST/KEEP_LAST each half is already
+        // deduplicated, so ties can be resolved by choosing left or right and advancing both.
+        while (i < leftLength && j < rightEnd) {
             int cmpValue = cmp.compare(work[i], visits[j]);
-            VisitRecord putVisitRecord = null;
-
-            // Getting visitRecord that should go first
             if (cmpValue < 0) {
-                putVisitRecord = work[i];
+                visits[k] = work[i];
                 i++;
-            }
-            else if (cmpValue > 0) {
-                putVisitRecord = visits[j];
+                k++;
+            } else if (cmpValue > 0) {
+                visits[k] = visits[j];
                 j++;
-            }
-            else {
-                if (policy == KEEP_ALL) {
-                    putVisitRecord = work[i];
-                    i++;
-                }
-                else if (policy == KEEP_LAST) {
-                    putVisitRecord = visits[j];
-                    j++;
-                }
-                else if (policy == KEEP_FIRST) {
-                    putVisitRecord = work[i];
-                    i++;
-                }
-            }
-
-            // Putting the value onto the right spot
-            if (k != leftBegin) {
-                // Checking if prev value is same as current value
-                if (cmp.compare(visits[k-1], putVisitRecord) == 0) {
-                    if (policy == KEEP_LAST) {
-                        visits[k-1] = putVisitRecord;
-                    }
-                    else if (policy == KEEP_ALL) {
-                        visits[k] = putVisitRecord;
-                        k++;
-                    }
-                }
-                // Prev value is diff than current value, proceed normally
-                else {
-                    visits[k] = putVisitRecord;
-                    k++;
-                }
-            }
-            else {
-                visits[k] = putVisitRecord;
+                k++;
+            } else if (policy == KEEP_ALL) {
+                // Stable merge for equal elements.
+                visits[k] = work[i];
+                i++;
+                k++;
+            } else if (policy == KEEP_FIRST) {
+                visits[k] = work[i];
+                i++;
+                j++;
+                k++;
+            } else { // policy == KEEP_LAST
+                visits[k] = visits[j];
+                i++;
+                j++;
                 k++;
             }
         }
 
-        while (i < (leftEnd - leftBegin)) {
+        while (i < leftLength) {
             visits[k] = work[i];
-            i++; k++;
+            i++;
+            k++;
         }
 
         while (j < rightEnd) {
             visits[k] = visits[j];
-            j++; k++;
+            j++;
+            k++;
         }
 
         return k;

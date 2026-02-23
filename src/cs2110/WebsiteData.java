@@ -74,19 +74,8 @@ public class WebsiteData {
      * Returns the number of distinct users who visited the website.
      */
     int countDistinctUsers() {
-        // TODO 6a: Complete this method according to its specifications. Your definition may
-        //  not include any loops.
-
-        VisitRecord[] byUser = deduplicatingSort(visits, BY_USER_ID, KEEP_ALL);
-        int count = 0;
-        String lastUser = null;
-        for (VisitRecord visit : byUser) {
-            if (!visit.userID.equals(lastUser)) {
-                count++;
-                lastUser = visit.userID;
-            }
-        }
-        return count;
+        VisitRecord[] uniqueByUser = deduplicatingSort(visits, BY_USER_ID, KEEP_FIRST);
+        return uniqueByUser.length;
     }
 
     /**
@@ -94,24 +83,15 @@ public class WebsiteData {
      * (inclusive).
      */
     int countDistinctUsersInTimeInterval(LocalDateTime start, LocalDateTime end) {
-        // TODO 6b: Complete this method according to its specifications. Your definition may
-        //  not include any loops. (Hint: use `dedupMergeSortRecursive()`)
-
-        // 1. Get all visits in the time interval
         VisitRecord[] byTime = deduplicatingSort(visits, BY_TIMESTAMP, KEEP_ALL);
         int first = lowerBoundTimestamp(byTime, start);
         int last = upperBoundTimestamp(byTime, end);
-        // 2. Count distinct users in that interval
-        VisitRecord[] byUser = deduplicatingSort(byTime, BY_USER_ID, KEEP_FIRST);
-        int count = 0;
-        String lastUser = null;
-        for (int i = first; i < last; i++) {
-            if (!byUser[i].userID.equals(lastUser)) {
-                count++;
-                lastUser = byUser[i].userID;
-            }
-        }
-        return count;
+
+        VisitRecord[] inInterval = new VisitRecord[last - first];
+        System.arraycopy(byTime, first, inInterval, 0, inInterval.length);
+
+        VisitRecord[] uniqueByUser = deduplicatingSort(inInterval, BY_USER_ID, KEEP_FIRST);
+        return uniqueByUser.length;
     }
 
     /**
@@ -122,13 +102,14 @@ public class WebsiteData {
      */
     @SuppressWarnings("SameParameterValue")
     String[] lastKUsers(int k) {
-        // TODO 6c: Complete this method according to its specifications. Your definition may
-        //  include at most one loop that runs for at most `k` iterations.
+        VisitRecord[] byTime = deduplicatingSort(visits, BY_TIMESTAMP, KEEP_ALL);
+        VisitRecord[] latestPerUser = deduplicatingSort(byTime, BY_USER_ID, KEEP_LAST);
+        VisitRecord[] latestPerUserByTime = deduplicatingSort(latestPerUser, BY_TIMESTAMP, KEEP_ALL);
 
-        VisitRecord[] byTime = deduplicatingSort(visits, BY_TIMESTAMP, KEEP_LAST);
         String[] result = new String[k];
+        int start = latestPerUserByTime.length - k;
         for (int i = 0; i < k; i++) {
-            result[i] = byTime[byTime.length - 1 - i].userID;
+            result[i] = latestPerUserByTime[start + i].userID();
         }
         return result;
     }
